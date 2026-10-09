@@ -233,7 +233,7 @@ function render(){
    ${(S.sel<0||S.sel>=100)&&bucket(S.sel).length?`<button class="danger" data-ovdel>Laatste foto wissen</button>`:''}
    ${S.sel>=100?`<div class="row"><button class="sec" data-renseries>Titel wijzigen</button><button class="danger" data-delseries>Reeks verwijderen</button></div>`:''}</div>
    <div class="card"><h2>Dossier – ${typeNaam()}</h2><button class="sec" id="chType" style="margin:0 0 6px;padding:8px">Soort wijzigen</button>
-   <label>Plaats van het ongeval (automatisch via GPS, controleer en pas zo nodig aan)</label><input type="text" id="plaats" value="${esc(S.plaats)}" placeholder="wordt ingevuld via GPS…" autocomplete="off">
+   <label>Plaats van ${S.type==='inbreuk'?'de inbreuk':'het ongeval'} (automatisch via GPS, controleer en pas zo nodig aan)</label><input type="text" id="plaats" value="${esc(S.plaats)}" placeholder="wordt ingevuld via GPS…" autocomplete="off">
    <button class="sec" id="relocate">📍 Plaats opnieuw bepalen</button></div>`;
   S.partijen.forEach((p,i)=>{
     const have=k=>p.photos.some(x=>x.k===k), skp=k=>p.skipped.includes(k);
