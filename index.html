@@ -346,7 +346,8 @@ $('#shutter').onclick=()=>{
 async function send(extra=[]){
   const mail=cfg().mail;
   const files=[...extra],lines=[];const d=new Date(S.start);
-  const stamp=d.toISOString().slice(0,16).replace(/[-:T]/g,'').replace(/^(\d{8})/,'$1_');
+  const p2=n=>String(n).padStart(2,'0');
+  const stamp=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
   S.partijen.forEach((p,i)=>{
     lines.push(`Partij ${letter(i)} – e-mail bestuurder: ${p.email||'(niet ingevuld)'}`,`   GSM bestuurder: ${p.gsm||'(niet ingevuld)'}`);
     if(p.data){FIELDS.forEach(([k,l])=>{if(p.data[k])lines.push(`   ${l}: ${p.data[k]}`)});(p.data.passagiers||[]).forEach(x=>{if(x.naam)lines.push(`   Passagier: ${x.naam} ${x.geboortedatum||''} ${x.rijksregisternummer||''}`)})}
@@ -363,7 +364,9 @@ async function send(extra=[]){
     lines.unshift(`Datum: ${t.toLocaleDateString('nl-BE')}`,`Uur eerste foto: ${t.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})}`,
       `Locatie: ${m.lat!=null?`${m.lat.toFixed(6)}, ${m.lon.toFixed(6)} (±${Math.round(m.acc)} m) – https://maps.google.com/?q=${m.lat.toFixed(6)},${m.lon.toFixed(6)}`:'GPS niet beschikbaar'}`,'');}
   if(!files.length){alert('Er zijn nog geen foto\'s genomen.');return}
-  const subject=`Vaststelling ${typeNaam().toLowerCase()} ${d.toLocaleDateString('nl-BE')} ${S.plaats}`.trim();
+  // onderwerp = ook de mapnaam in OneDrive: geen tekens die een mapnaam breken
+  const pad=n=>String(n).padStart(2,'0');
+  const subject=`Vaststelling ${typeNaam().toLowerCase()} ${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}${pad(d.getMinutes())} ${S.plaats}`.replace(/[\\\/:*?"<>|~#%&{}]/g,' ').replace(/\s+/g,' ').trim();
   const text=`${subject}\n\n${lines.join('\n')}`;
   let done=false;
   if(navigator.canShare&&navigator.canShare({files})){
