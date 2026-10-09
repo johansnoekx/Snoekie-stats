@@ -193,6 +193,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
+const VERSIE='9 okt 2026 · 20:05'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 function renderStart(){
@@ -201,7 +202,8 @@ function renderStart(){
    <p class="small" style="margin:0 0 6px">Kies om te starten</p>
    <button class="tile" data-type="ongeval"><span>🚗</span><b>Verkeersongeval</b><small>Foto's per partij, fotodossier en samenvatting</small></button>
    <button class="tile" data-type="inbreuk"><span>🚦</span><b>Verkeersinbreuk</b><small>Foto's van één bestuurder, fotodossier en samenvatting</small></button></div>
-   ${lopend?`<div class="card"><p style="margin:0 0 6px"><b>Lopend dossier:</b> ${typeNaam()} · ${n} foto${n>1?"'s":''}</p><button class="sec" id="resume">▶ Doorgaan met dit dossier</button></div>`:''}`;
+   ${lopend?`<div class="card"><p style="margin:0 0 6px"><b>Lopend dossier:</b> ${typeNaam()} · ${n} foto${n>1?"'s":''}</p><button class="sec" id="resume">▶ Doorgaan met dit dossier</button></div>`:''}
+   <p class="small" style="text-align:center">Snoekie Stats · versie ${VERSIE}</p>`;
   const r=$('#resume');if(r)r.onclick=()=>{atStart=false;render()};
   document.querySelectorAll('[data-type]').forEach(el=>el.onclick=async()=>{
     const t=el.dataset.type;

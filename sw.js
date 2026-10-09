@@ -1,4 +1,9 @@
-const C='vaststelling-v1',F=['./','index.html','manifest.json','icon.svg'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x))))));
-self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));
+// Altijd eerst de nieuwste versie ophalen (netwerk eerst); de cache is enkel een noodoplossing zonder internet.
+const C='vaststelling-v3',F=['./','index.html','manifest.json','icon.svg'];
+self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F)))});
+self.addEventListener('activate',e=>e.waitUntil(
+  caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(fetch(e.request,{cache:'no-cache'}).then(r=>{const k=r.clone();caches.open(C).then(c=>c.put(e.request,k));return r}).catch(()=>caches.match(e.request)));
+});
