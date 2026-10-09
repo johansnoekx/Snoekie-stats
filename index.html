@@ -349,8 +349,8 @@ function render(){
      <div class="row"><button class="sec" data-pass="${i}">+ Passagier-ID</button>${S.partijen.length>1?`<button class="danger" data-del="${i}">Wis partij</button>`:''}</div></div>`;
   });
   h+=`${groups().length?`<button class="big" data-dos>👁 Voorvertoning</button>`:''}   <button class="ok" id="send">✉️ Alles verzenden naar werkmailbox</button>
-   <button class="danger" id="reset">Dossier wissen</button>
-   <p class="small">Foto's blijven in de app (niet in je galerij) en worden gewist na verzenden.</p>`;
+   <p class="small">Foto's blijven in de app (niet in je galerij) en worden gewist na verzenden.</p>
+   <button class="danger" id="reset" style="margin-top:56px;margin-bottom:24px">Dossier wissen</button>`;
   $('#app').innerHTML=h;
   $('#plaats').oninput=e=>{S.plaats=e.target.value;$('#dossierLabel').textContent=S.plaats;save()};
   $('#relocate').onclick=()=>locate(true);
