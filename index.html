@@ -229,7 +229,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 20:02'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 20:05'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -375,17 +375,17 @@ let saveT=null;
 const saveSoon=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{saveT=null;save()},1500)};
 const flushSave=()=>{if(saveT){clearTimeout(saveT);saveT=null;save()}};
 addEventListener('pagehide',flushSave);document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave()});
-function buildQueue(pi,pass){
+function buildQueue(pi,pass,alleenFotos=false){
   const p=pi<0||pi>=100?{photos:[]}:S.partijen[pi];
   if(pi<0||pi>=100)queue=[{k:'reeks',t:bucketName(pi)+' (zonder stempel)'}];
   else if(pass)queue=[{k:'passagier'+(p.photos.filter(x=>x.k.startsWith('passagier')).length+1),t:'Passagier – ID (voorzijde)'}];
-  else queue=[...STEPS.filter(s=>!p.photos.some(x=>x.k===s.k)),{k:'veh',t:'Voertuigfoto (zonder stempel)'}];
+  else queue=[...(alleenFotos?[]:STEPS.filter(s=>!p.photos.some(x=>x.k===s.k))),{k:'veh',t:'Voertuigfoto (zonder stempel)'}];
 }
 // "Volgende ▸": zonder de camera te sluiten naar de volgende categorie (overzicht, partijen, reeksen, schade)
 function goNext(){
   const order=[-2,...S.partijen.map((p,i)=>i),...S.series.map((r,i)=>100+i),-3],nxt=order[order.indexOf(cp)+1];
   if(nxt===undefined)return leaveCam();
-  cp=nxt;passMode=false;buildQueue(cp,false);qi=0;S.sel=nxt;saveSoon();show();
+  cp=nxt;passMode=false;buildQueue(cp,false,true);qi=0;S.sel=nxt;saveSoon();show(); // enkel foto's: de documenten komen pas als je zelf op die partij tikt
 }
 // de camera sluit ook met de terugknop of het terugveeg van de gsm
 function leaveCam(){if(history.state&&history.state.cam)history.back();else stopCam()}
