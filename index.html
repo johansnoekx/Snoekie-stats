@@ -580,7 +580,9 @@ async function makeSummary(){
 
 // ---------- Start ----------
 $('#gear').onclick=()=>{S.editCfg=true;render()};
-(async()=>{S=(await DB.get())||fresh();delete S.scene;S.editCfg=false;S.overview=S.overview||[];S.damage=S.damage||[];S.series=S.series||[];S.partijen.forEach(p=>p.veh=p.veh||[]);S.mode=S.mode||'doc';render();
+(async()=>{S=(await DB.get())||fresh();delete S.scene;S.editCfg=false;
+ // leeg dossier = opnieuw beginnen met de keuze ongeval of inbreuk
+ if(!S.overview.length&&!(S.damage||[]).length&&!(S.series||[]).some(r=>r.l.length)&&S.partijen.every(p=>!p.photos.length&&!(p.veh||[]).length&&!p.email&&!p.gsm&&!p.data))S.type=null;S.overview=S.overview||[];S.damage=S.damage||[];S.series=S.series||[];S.partijen.forEach(p=>p.veh=p.veh||[]);S.mode=S.mode||'doc';render();
  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})})();
 </script>
 </body>
