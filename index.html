@@ -48,6 +48,7 @@ button.big{background:linear-gradient(135deg,#2f80ed,#0b2a4a);font-size:20px;pad
 .paper .cards{display:flex;gap:8px;margin-bottom:18px}
 .paper .ic{background:#f0f3f8;border-radius:6px;padding:8px 10px;min-width:0}
 .paper .ic small{display:block;font-size:9px;letter-spacing:.8px;color:#6b7684}.paper .ic b{font-size:12px;word-break:break-word}
+.paper .dt{font-size:19px;font-weight:800;color:#0b2a4a;margin:0 0 4px}
 .paper .sh{display:flex;align-items:center;gap:8px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid #cfd5dd}
 .paper .sh .bar{width:5px;height:20px;background:#0b2a4a;border-radius:2px}.paper .sh b{font-size:14px;letter-spacing:.8px;color:#0b2a4a;flex:1}.paper .sh .cnt{font-size:11px;color:#777}
 .paper .rt{display:flex;justify-content:space-between;gap:8px;margin:12px 0 6px}.paper .rt b{font-size:13px}.paper .rt span{font-size:11px;color:#777;white-space:nowrap}
@@ -259,7 +260,7 @@ function render(){
   document.querySelectorAll('[data-gsm]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.gsm].gsm=e.target.value;save()});
   document.querySelectorAll('[data-email]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.email].email=e.target.value;save()});
   document.querySelectorAll('[data-mode]').forEach(el=>el.onclick=()=>{S.mode=el.dataset.mode;save();render()});
-  const dd=document.querySelector('[data-dos]');if(dd)dd.onclick=openPreview;
+  const dd=document.querySelector('[data-dos]');if(dd)dd.onclick=startPreview;
   document.querySelectorAll('[data-sel]').forEach(el=>el.onclick=()=>{S.sel=+el.dataset.sel;save();render()});
   const od=document.querySelector('[data-ovdel]');if(od)od.onclick=()=>{if(confirm('De laatst genomen foto definitief verwijderen?')){bucket(S.sel).pop();save();render()}};
   document.querySelector('[data-newseries]').onclick=()=>{const n=(prompt('Titel van de nieuwe reeks (bv. Sporen):')||'').trim();if(!n)return;S.series.push({naam:n,l:[]});S.sel=99+S.series.length;save();render()};
@@ -416,11 +417,13 @@ function openDossier(skip){
   const g=groups();if(!g.length){$('#dos').style.display='none';return}
   const st=$('#dos').scrollTop;
   let h='<h2 style="margin-top:16px">Titels en foto\'s</h2><p class="small">Geef elke foto een eigen titel (bv. "Schade voorzijde partij A"). Foto\'s die na elkaar dezelfde titel hebben, komen samen onder één titel te staan. Gebruik daarvoor "Zelfde titel als vorige foto".</p>';
+  if(S.type==='inbreuk')h+=`<div class="card"><label>Titel boven de foto's van het fotodossier (leeg laten = geen titel)</label><input type="text" data-dtitle value="${esc(S.dossTitle||'')}" placeholder="bv. Parkeren op het fietspad"></div>`;
   g.forEach((x,gi)=>{h+=`<div class="card"><h2>${esc(x.t)}</h2><label class="chk"><input type="checkbox" data-gall="${gi}" ${x.l.every(f=>f.off)?'':'checked'}> Dit titelblok opnemen in het fotodossier</label>`;
     x.l.forEach((f,fi)=>{h+=`<label class="chk"><input type="checkbox" data-on="${gi}|${fi}" ${f.off?'':'checked'}> Foto opnemen</label><img style="${f.off?'opacity:.35':''}" src="${URL.createObjectURL(f.blob)}" alt=""><input type="text" data-cap="${gi}|${fi}" value="${esc(f.cap||'')}" placeholder="Titel van deze foto" style="margin:6px 0 6px">
       <div class="row">${fi>0?`<button class="sec" style="margin:0 0 16px;padding:10px" data-same="${gi}|${fi}">↳ Zelfde titel als vorige</button>`:''}<button class="danger" style="margin:0 0 16px;padding:10px" data-delph="${gi}|${fi}">🗑 Verwijderen</button></div>`});h+='</div>'});
   h+='<button class="big" id="toPrev">👁 Voorvertoning</button><button class="sec" id="dosClose">Terug naar de foto\'s</button>';
   $('#dosIn').innerHTML=h;$('#dos').style.display='block';$('#dos').scrollTop=skip===true?st:0;
+  const dt=document.querySelector('[data-dtitle]');if(dt)dt.oninput=()=>{S.dossTitle=dt.value;save()};
   document.querySelectorAll('[data-cap]').forEach(el=>el.oninput=()=>{const[a,b]=el.dataset.cap.split('|');g[+a].l[+b].cap=el.value;save()});
   document.querySelectorAll('[data-on]').forEach(el=>el.onchange=()=>{const[a,b]=el.dataset.on.split('|').map(Number);g[a].l[b].off=!el.checked;save();openDossier(true)});
   document.querySelectorAll('[data-gall]').forEach(el=>el.onchange=()=>{g[+el.dataset.gall].l.forEach(f=>f.off=!el.checked);save();openDossier(true)});
@@ -429,6 +432,20 @@ function openDossier(skip){
     if(confirm(`Deze foto uit "${g[+a].t}" definitief verwijderen?`)){g[+a].l.splice(+b,1);save();render();openDossier(true)}});
   $('#dosClose').onclick=()=>{$('#dos').style.display='none'};
   $('#toPrev').onclick=openPreview;
+}
+// Bij een verkeersinbreuk eerst vragen of er een titel boven de foto's moet
+function startPreview(){
+  if(S.type==='inbreuk'&&!S.titleAsked){
+    $('#dosIn').innerHTML=`<div class="card" style="margin-top:20px"><h2>Wil je een titel toevoegen aan het fotodossier?</h2>
+      <div id="tq"><button class="ok" id="tYes">Ja</button><button class="sec" id="tNo">Nee</button></div>
+      <div id="tIn" style="display:none"><label>Titel (komt boven de foto's)</label><input type="text" id="tVal" value="${esc(S.dossTitle||'')}" placeholder="bv. Parkeren op het fietspad"><button class="ok" id="tGo">Doorgaan</button></div></div>
+      <button class="sec" id="tBack">Terug</button>`;
+    $('#dos').style.display='block';$('#dos').scrollTop=0;
+    $('#tYes').onclick=()=>{$('#tq').style.display='none';$('#tIn').style.display='block';$('#tVal').focus()};
+    $('#tNo').onclick=()=>{S.dossTitle='';S.titleAsked=true;save();openPreview()};
+    $('#tGo').onclick=()=>{S.dossTitle=$('#tVal').value.trim();S.titleAsked=true;save();openPreview()};
+    $('#tBack').onclick=()=>{$('#dos').style.display='none'};
+  }else openPreview();
 }
 // Voorvertoning: zo ziet het fotodossier eruit; goedkeuren maakt de PDF
 async function openPreview(){
@@ -441,6 +458,7 @@ async function openPreview(){
   if(untitled)h+=`<div class="warn">⚠️ ${untitled} foto${untitled>1?"'s":''} zonder titel.</div>`;
   h+=`<div class="paper"><div class="band"><div><div class="bt">FOTODOSSIER</div><div class="bs">${typeNaam()} · bijlage bij proces-verbaal</div></div><div class="bd">${esc(d.datumLang)}</div></div><div class="pi">
    <div class="cards"><div class="ic" style="flex:80"><small>PLAATS</small><b>${esc(d.plaats)}</b></div><div class="ic" style="flex:60"><small>LOCATIE (GPS)</small><b>${esc(d.loc)}</b></div><div class="ic" style="flex:34"><small>EERSTE FOTO</small><b>${esc(d.uur)}</b></div></div>`;
+  if(S.type==='inbreuk'&&(S.dossTitle||'').trim())h+=`<div class="dt">${esc(S.dossTitle.trim())}</div>`;
   let num=0;
   g.forEach(x=>{h+=`<div class="sh"><span class="bar"></span><b>${esc(x.t.toUpperCase())}</b><span class="cnt">${x.l.length} foto${x.l.length>1?"'s":''}</span></div>`;
     runs(x.l).forEach(r=>{const a=num+1,b=num+r.items.length;
@@ -477,6 +495,8 @@ async function makePdf(g){
     doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(110);doc.text(lab,x0+3,y+4.6);
     doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20);doc.text(doc.splitTextToSize(val,w-6).slice(0,2),x0+3,y+9.6)});
   y+=26;let num=0;
+  const dtitle=S.type==='inbreuk'?(S.dossTitle||'').trim():'';
+  if(dtitle){doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(...NAVY);const tl=doc.splitTextToSize(dtitle,180);doc.text(tl,M,y);y+=tl.length*6.5+4}
   const sec=(x)=>{ // sectiekop met accentbalk, hoofdletters en aantal foto's
     if(y>BOT-55){doc.addPage();y=M}
     doc.setFillColor(...NAVY);doc.rect(M,y,2.2,7,'F');
