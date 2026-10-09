@@ -229,7 +229,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 20:05'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 20:08'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -456,7 +456,7 @@ $('#shutter').onclick=()=>{
 // ---------- Verzenden ----------
 async function send(extra=[]){
   const mail=cfg().mail;
-  const files=[...extra],lines=[];const d=new Date(S.start);
+  const files=[...extra],losse=[],lines=[];const d=new Date(S.start);
   const p2=n=>String(n).padStart(2,'0');
   const stamp=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
   S.partijen.forEach((p,i)=>{
@@ -464,16 +464,34 @@ async function send(extra=[]){
     if(p.data){FIELDS.forEach(([k,l])=>{if(p.data[k])lines.push(`   ${l}: ${p.data[k]}`)});(p.data.passagiers||[]).forEach(x=>{if(x.naam)lines.push(`   Passagier: ${x.naam} ${x.geboortedatum||''} ${x.rijksregisternummer||''}`)})}
     const missing=STEPS.filter(s=>!p.photos.some(x=>x.k===s.k)).map(s=>s.t+(p.skipped.includes(s.k)?' (overgeslagen)':''));
     if(missing.length)lines.push('   Ontbreekt: '+missing.join('; '));
-    p.veh.forEach((x,n)=>files.push(new File([x.blob],`${stamp}_${pkey(i)}_voertuig_${String(n+1).padStart(2,'0')}.jpg`,{type:'image/jpeg'})));
-    p.photos.forEach(x=>files.push(new File([x.blob],`${stamp}_${pkey(i)}_${x.k}.jpg`,{type:'image/jpeg'})));
+    p.veh.forEach((x,n)=>losse.push(new File([x.blob],`${stamp}_${pkey(i)}_voertuig_${String(n+1).padStart(2,'0')}.jpg`,{type:'image/jpeg'})));
+    p.photos.forEach(x=>losse.push(new File([x.blob],`${stamp}_${pkey(i)}_${x.k}.jpg`,{type:'image/jpeg'})));
   });
-  S.overview.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');files.push(new File([x.blob],`${stamp}_overzicht_${nn}.jpg`,{type:'image/jpeg'}))});
-  S.damage.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');files.push(new File([x.blob],`${stamp}_schade_openbaar_domein_${nn}.jpg`,{type:'image/jpeg'}))});
-  S.series.forEach(r=>r.l.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');files.push(new File([x.blob],`${stamp}_${r.naam.replace(/[^\w]+/g,'_')}_${nn}.jpg`,{type:'image/jpeg'}))}));
+  S.overview.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');losse.push(new File([x.blob],`${stamp}_overzicht_${nn}.jpg`,{type:'image/jpeg'}))});
+  S.damage.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');losse.push(new File([x.blob],`${stamp}_schade_openbaar_domein_${nn}.jpg`,{type:'image/jpeg'}))});
+  S.series.forEach(r=>r.l.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');losse.push(new File([x.blob],`${stamp}_${r.naam.replace(/[^\w]+/g,'_')}_${nn}.jpg`,{type:'image/jpeg'}))}));
   const metas=[...S.partijen.flatMap(p=>[...p.photos,...p.veh]),...S.overview,...S.series.flatMap(r=>r.l),...S.damage].map(x=>x.meta).filter(Boolean).sort((a,b)=>a.tijd.localeCompare(b.tijd));
   if(metas.length){const m=metas.find(x=>x.lat!=null)||metas[0],t=new Date(metas[0].tijd);
     lines.unshift(`Datum: ${t.toLocaleDateString('nl-BE')}`,`Uur eerste foto: ${t.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})}`,
       `Locatie: ${m.lat!=null?`${m.lat.toFixed(6)}, ${m.lon.toFixed(6)} (±${Math.round(m.acc)} m) – https://maps.google.com/?q=${m.lat.toFixed(6)},${m.lon.toFixed(6)}`:'GPS niet beschikbaar'}`,'');}
+  // alle foto's in één ZIP met mappen per partij: Documenten en Schadefoto's (de app weet welke foto wat is)
+  const nice=t=>t.replace(/[^\p{L}\p{N} ]+/gu,' ').replace(/\s+/g,' ').trim();
+  const nr=n=>String(n+1).padStart(2,'0'),entries=[];
+  S.overview.forEach((x,n)=>entries.push(['Overzicht',`Foto ${nr(n)}.jpg`,x.blob]));
+  S.partijen.forEach((p,i)=>{
+    p.photos.forEach(x=>entries.push([`${pname(i)}/Documenten`,`${nice(x.t)}${x.k.startsWith('passagier')?' '+x.k.replace('passagier',''):''}.jpg`,x.blob]));
+    p.veh.forEach((x,n)=>entries.push([`${pname(i)}/Schadefoto's`,`Foto ${nr(n)}.jpg`,x.blob]))});
+  S.series.forEach(r=>r.l.forEach((x,n)=>entries.push([nice(r.naam)||'Reeks',`Foto ${nr(n)}.jpg`,x.blob])));
+  S.damage.forEach((x,n)=>entries.push(['Schade openbaar domein',`Foto ${nr(n)}.jpg`,x.blob]));
+  let gezipt=false;
+  if(entries.length){
+    try{
+      if(!window.JSZip)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+      const zip=new JSZip();entries.forEach(([map,naam,blob])=>zip.file(`${map}/${naam}`,blob));
+      files.push(new File([await zip.generateAsync({type:'blob',compression:'STORE'})],`${stamp}_Fotos.zip`,{type:'application/zip'}));gezipt=true;
+    }catch(e){console.warn('ZIP maken mislukt, losse foto\'s worden verstuurd:',e)}
+  }
+  if(!gezipt)files.push(...losse); // zonder ZIP: losse foto's met duidelijke namen
   if(!files.length){alert('Er zijn nog geen foto\'s genomen.');return}
   // onderwerp = ook de mapnaam in OneDrive: geen tekens die een mapnaam breken
   const pad=n=>String(n).padStart(2,'0');
