@@ -229,7 +229,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 19:52'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 20:02'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -370,16 +370,33 @@ function render(){
 
 // ---------- Camera ----------
 let stream=null,queue=[],qi=0,cp=0,passMode=false;
-async function startCapture(pi,pass){
-  cp=pi;passMode=pass;const p=pi<0||pi>=100?{photos:[]}:S.partijen[pi];
-  if(pi<0||pi>=100){queue=[{k:'reeks',t:bucketName(pi)+' (zonder stempel)'}]}
-  else if(pass){queue=[{k:'passagier'+(p.photos.filter(x=>x.k.startsWith('passagier')).length+1),t:'Passagier – ID (voorzijde)'}];}
+// opslaan na elke foto gebeurt op de achtergrond (anders wordt de camera trager naarmate er meer foto's zijn)
+let saveT=null;
+const saveSoon=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{saveT=null;save()},1500)};
+const flushSave=()=>{if(saveT){clearTimeout(saveT);saveT=null;save()}};
+addEventListener('pagehide',flushSave);document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave()});
+function buildQueue(pi,pass){
+  const p=pi<0||pi>=100?{photos:[]}:S.partijen[pi];
+  if(pi<0||pi>=100)queue=[{k:'reeks',t:bucketName(pi)+' (zonder stempel)'}];
+  else if(pass)queue=[{k:'passagier'+(p.photos.filter(x=>x.k.startsWith('passagier')).length+1),t:'Passagier – ID (voorzijde)'}];
   else queue=[...STEPS.filter(s=>!p.photos.some(x=>x.k===s.k)),{k:'veh',t:'Voertuigfoto (zonder stempel)'}];
+}
+// "Volgende ▸": zonder de camera te sluiten naar de volgende categorie (overzicht, partijen, reeksen, schade)
+function goNext(){
+  const order=[-2,...S.partijen.map((p,i)=>i),...S.series.map((r,i)=>100+i),-3],nxt=order[order.indexOf(cp)+1];
+  if(nxt===undefined)return leaveCam();
+  cp=nxt;passMode=false;buildQueue(cp,false);qi=0;S.sel=nxt;saveSoon();show();
+}
+// de camera sluit ook met de terugknop of het terugveeg van de gsm
+function leaveCam(){if(history.state&&history.state.cam)history.back();else stopCam()}
+addEventListener('popstate',()=>{if($('#cam').style.display==='flex')stopCam()});
+async function startCapture(pi,pass){
+  cp=pi;passMode=pass;buildQueue(pi,pass);
   if(!queue.length){alert('Alle documenten van deze partij zijn al genomen.');return}
   qi=0;
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:2560},height:{ideal:1440}},audio:false})}
   catch(e){alert('Geen toegang tot camera. Sta cameratoegang toe voor deze pagina en open ze via https.');return}
-  $('#video').srcObject=stream;$('#cam').style.display='flex';show();
+  $('#video').srcObject=stream;$('#cam').style.display='flex';history.pushState({cam:1},'');show();
   pos=null;updGps();
   if(navigator.geolocation)watchId=navigator.geolocation.watchPosition(p=>{pos=p;updGps()},e=>{pos=null;updGps(e)},{enableHighAccuracy:true,maximumAge:0,timeout:30000});
   else updGps({message:'niet ondersteund'});
@@ -403,21 +420,25 @@ function stamp(c,s){
 }
 function show(){
   const s=queue[qi];
-  if(!s){return stopCam()}
+  if(!s){return leaveCam()}
   vehMode=cp>=0&&cp<100&&s.k==='veh';
+  $('#btnSkip').textContent=(cp<0||cp>=100||vehMode)?'Volgende ▸':'Overslaan';
   $('#camParty').innerHTML='Deze foto\'s '+whose(cp)+(vehMode?' – voertuig':'');$('#camStep').textContent=s.t;
   $('#camCount').textContent=cp<0||cp>=100||vehMode?(vehMode?S.partijen[cp].veh:bucket(cp)).length+' foto\'s genomen – tik "Klaar" als je klaar bent':(qi+1)+' / '+queue.length+(/_verso$/.test(s.k)?' – tik "Overslaan" als dit niet nodig is':'');
 }
-function stopCam(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('#cam').style.display='none';render()}
-$('#btnStop').onclick=stopCam;
-$('#btnSkip').onclick=()=>{const s=queue[qi];if(s&&!passMode&&cp>=0&&cp<100&&s.k!=='veh'&&!S.partijen[cp].skipped.includes(s.k))S.partijen[cp].skipped.push(s.k);save();qi++;show()};
+function stopCam(){flushSave();if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('#cam').style.display='none';render()}
+$('#btnStop').onclick=leaveCam;
+$('#btnSkip').onclick=()=>{const s=queue[qi];
+  if(cp<0||cp>=100||(s&&s.k==='veh'))return goNext();
+  if(s&&!passMode&&cp>=0&&cp<100&&s.k!=='veh'&&!S.partijen[cp].skipped.includes(s.k))S.partijen[cp].skipped.push(s.k);save();qi++;show()};
 $('#shutter').onclick=()=>{
   const v=$('#video'),s=queue[qi];if(!s||!v.videoWidth)return;
   const max=1800,sc=Math.min(1,max/Math.max(v.videoWidth,v.videoHeight));
   const c=$('#cv');c.width=v.videoWidth*sc;c.height=v.videoHeight*sc;c.getContext('2d').drawImage(v,0,0,c.width,c.height);
   if(cp<0||cp>=100||vehMode){ // foto's zonder stempel: geen stempel in het beeld, metadata apart bewaard
     const meta={tijd:new Date().toISOString(),lat:pos?pos.coords.latitude:null,lon:pos?pos.coords.longitude:null,acc:pos?pos.coords.accuracy:null};
-    c.toBlob(b=>{(vehMode?S.partijen[cp].veh:bucket(cp)).push({blob:b,meta});save();show()},'image/jpeg',.9);
+    const doel=vehMode?S.partijen[cp].veh:bucket(cp);
+    c.toBlob(b=>{doel.push({blob:b,meta});saveSoon();show()},'image/jpeg',.9);
     const f=$('#flash');f.style.opacity=.8;setTimeout(()=>f.style.opacity=0,120);
     if(navigator.vibrate)navigator.vibrate(30);
     return;
@@ -425,11 +446,11 @@ $('#shutter').onclick=()=>{
   const meta=stamp(c,s);
   c.toBlob(b=>{
     const p=S.partijen[cp];p.photos=p.photos.filter(x=>x.k!==s.k);p.photos.push({k:s.k,t:s.t,blob:b,meta});
-    p.skipped=p.skipped.filter(k=>k!==s.k);save();
+    p.skipped=p.skipped.filter(k=>k!==s.k);saveSoon();
   },'image/jpeg',.85);
   const f=$('#flash');f.style.opacity=.8;setTimeout(()=>f.style.opacity=0,120);
   if(navigator.vibrate)navigator.vibrate(30);
-  qi++;setTimeout(show,150);
+  qi++;setTimeout(show,60);
 };
 
 // ---------- Verzenden ----------
