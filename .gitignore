@@ -1,3 +1,7 @@
 start.bat
 .claude/
 
+
+*.doc
+*.docx
+
