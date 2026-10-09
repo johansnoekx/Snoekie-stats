@@ -74,6 +74,8 @@ main.start{padding:12px}
 .microw{display:flex;gap:8px;align-items:stretch}.microw input{flex:1;min-width:0}
 #app button.mic{width:58px;flex:none;margin:0;padding:0;font-size:24px;border-radius:10px}
 #app button.mic.on{background:#c62828;animation:puls 1s infinite}@keyframes puls{50%{opacity:.55}}
+#app button.chip{width:auto;margin:0;padding:9px 13px;font-size:14px;font-weight:600;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:99px}
+#app button.chip.done{background:#dff3e6;color:#14532d;border-color:#9fd4b3}#app button.chip.skip{background:#fdecc8;color:#7a4a05;border-color:#e8c36f}
 .selbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
 #app .selbar button{margin:0;padding:14px 6px;font-size:15px;overflow-wrap:anywhere;line-height:1.2}
 .chk{display:flex;align-items:center;gap:10px;margin:8px 0;color:var(--ink);font-size:15px}
@@ -238,7 +240,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 22:57'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 22:59'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -333,12 +335,12 @@ function render(){
     const have=k=>p.photos.some(x=>x.k===k), skp=k=>p.skipped.includes(k);
     const chips=[['inschrijving','Inschrijvingsbewijs'],['verzekering','Verzekeringsbewijs'],['keuring','Keuringsbewijs'],['rijbewijs','Rijbewijs'],...(S.type==='inbreuk'?[['id','Identiteitskaart']]:[])].map(([pre,naam])=>{
       const ks=stepsFor().filter(s=>s.k.startsWith(pre)).map(s=>s.k),n=ks.filter(have).length,all=ks.every(skp)||(n===0&&ks.every(k=>skp(k)||!have(k))&&ks.some(skp));
-      return `<span class="chip ${n?'done':all?'skip':''}">${n?'✓':all?'–':'○'} ${naam}${ks.length>1&&n?` (${n}/${ks.length})`:''}</span>`}).join('');
+      return `<button class="chip ${n?'done':all?'skip':''}" data-doc="${pre}|${i}">${n?'✓':all?'–':'📷'} ${naam}${ks.length>1&&n?` (${n}/${ks.length})`:''}</button>`}).join('');
     const pas=p.photos.filter(x=>x.k.startsWith('passagier')).length;
     h+=`<div class="card"><h2>${pname(i)}</h2>
      <label>E-mailadres bestuurder</label><div class="microw"><input type="email" inputmode="email" autocapitalize="off" data-email="${i}" value="${esc(p.email)}" placeholder="typ of tik op 🎤 en spreek in">${MIC()?`<button class="mic" data-mic="email|${i}" aria-label="Inspreken">🎤</button>`:''}</div>
      <label>GSM-nummer bestuurder</label><div class="microw"><input type="tel" inputmode="tel" autocomplete="off" data-gsm="${i}" value="${esc(p.gsm||'')}" placeholder="bv. 0470 12 34 56">${MIC()?`<button class="mic" data-mic="gsm|${i}" aria-label="Inspreken">🎤</button>`:''}</div>
-     <div class="chips">${chips}<span class="chip ${pas?'done':''}">👤 Passagiers: ${pas}</span></div>
+     <div class="chips">${chips}<button class="chip ${pas?'done':''}" data-doc="passagier|${i}">👤 Passagiers: ${pas}</button></div>
      ${p.photos.length?`<details><summary class="small">Documentfoto's beheren (${p.photos.length})</summary>${p.photos.map(x=>`<div class="row" style="align-items:center;margin-top:6px"><span class="small" style="flex:2">${esc(x.t)}</span><button class="danger" style="margin:0;padding:8px" data-deldoc="${i}|${x.k}">🗑 Verwijderen</button></div>`).join('')}</details>`:''}
      <button class="sec" data-ext="${i}">🔎 Gegevens automatisch uitlezen</button>
      ${p.data?`<details open><summary class="small">Uitgelezen gegevens (controleer en pas aan)</summary>${FIELDS.map(([k,l])=>`<label>${l}</label><input type="text" data-f="${i}|${k}" value="${esc(p.data[k]||'')}">`).join('')}
@@ -366,6 +368,8 @@ function render(){
   document.querySelector('[data-go]').onclick=()=>startCapture(S.sel,false);
   document.querySelectorAll('[data-deldoc]').forEach(el=>el.onclick=()=>{const[i,k]=el.dataset.deldoc.split('|'),p=S.partijen[+i],x=p.photos.find(y=>y.k===k);
     if(x&&confirm(`"${x.t}" van ${pname(+i)} definitief verwijderen?`)){p.photos=p.photos.filter(y=>y.k!==k);save();render()}});
+  document.querySelectorAll('[data-doc]').forEach(el=>el.onclick=()=>{const[pre,i]=el.dataset.doc.split('|');
+    pre==='passagier'?startCapture(+i,true):startCapture(+i,false,pre)});
   document.querySelectorAll('[data-ext]').forEach(el=>el.onclick=()=>extract(+el.dataset.ext));
   document.querySelectorAll('[data-f]').forEach(el=>el.oninput=e=>{const[i,k]=el.dataset.f.split('|');S.partijen[+i].data[k]=e.target.value;save()});
   document.querySelectorAll('[data-cap]').forEach(el=>el.onclick=()=>startCapture(+el.dataset.cap,false));
@@ -383,8 +387,10 @@ let saveT=null;
 const saveSoon=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{saveT=null;save()},1500)};
 const flushSave=()=>{if(saveT){clearTimeout(saveT);saveT=null;save()}};
 addEventListener('pagehide',flushSave);document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave()});
+let docOnly=null; // één document fotograferen (tik op een label in de kaart van de partij)
 function buildQueue(pi,pass,alleenFotos=false){
   const p=pi<0||pi>=100?{photos:[]}:S.partijen[pi];
+  if(docOnly&&pi>=0&&pi<100&&!pass){queue=stepsFor().filter(s=>s.k.startsWith(docOnly));return}
   if(pi<0||pi>=100)queue=[{k:'reeks',t:bucketName(pi)+' (zonder stempel)'}];
   else if(pass)queue=[{k:'passagier'+(p.photos.filter(x=>x.k.startsWith('passagier')).length+1),t:'Passagier – ID (voorzijde)'}];
   else if(S.type==='inbreuk'&&!alleenFotos)queue=S.sub==='doc'?stepsFor().filter(s=>!p.photos.some(x=>x.k===s.k)):[{k:'veh',t:'Foto fotodossier (zonder stempel)'}];
@@ -394,13 +400,13 @@ function buildQueue(pi,pass,alleenFotos=false){
 function goNext(){
   const order=[...(S.type==='inbreuk'?[]:[-2]),...S.partijen.map((p,i)=>i),...S.series.map((r,i)=>100+i),...(S.type==='inbreuk'?[]:[-3])],nxt=order[order.indexOf(cp)+1];
   if(nxt===undefined)return leaveCam();
-  cp=nxt;passMode=false;buildQueue(cp,false,true);qi=0;S.sel=nxt;saveSoon();show(); // enkel foto's: de documenten komen pas als je zelf op die partij tikt
+  docOnly=null;cp=nxt;passMode=false;buildQueue(cp,false,true);qi=0;S.sel=nxt;saveSoon();show(); // enkel foto's: de documenten komen pas als je zelf op die partij tikt
 }
 // de camera sluit ook met de terugknop of het terugveeg van de gsm
 function leaveCam(){if(history.state&&history.state.cam)history.back();else stopCam()}
 addEventListener('popstate',()=>{if($('#cam').style.display==='flex')stopCam()});
-async function startCapture(pi,pass){
-  cp=pi;passMode=pass;buildQueue(pi,pass);
+async function startCapture(pi,pass,only){
+  docOnly=only||null;cp=pi;passMode=pass;buildQueue(pi,pass);
   if(!queue.length){alert('Alle documenten van deze partij zijn al genomen.');return}
   qi=0;
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:2560},height:{ideal:1440}},audio:false})}
