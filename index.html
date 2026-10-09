@@ -229,7 +229,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 20:08'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 20:21'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -311,11 +311,11 @@ function render(){
   if(!S.plaats&&!S.locTried){S.locTried=true;locate(false)}
   if(S.sel==null||S.sel===-1||(S.sel>=0&&S.sel<100&&S.sel>=S.partijen.length)||S.sel>=100+S.series.length)S.sel=0;
   let h=`<div class="card"><h2>${S.type==='inbreuk'?'Leg hier je inbreuk vast':'Wie fotografeer je?'}</h2>
-   <div class="selbar"><button class="${S.sel===-2?'':'sec'}" data-sel="-2">Overzicht</button>${S.partijen.map((p,i)=>`<button class="${S.sel===i?'':'sec'}" data-sel="${i}">${pname(i)}</button>`).join('')}${S.series.map((r,i)=>`<button class="${S.sel===100+i?'':'sec'}" data-sel="${100+i}">${esc(r.naam)}</button>`).join('')}<button class="${S.sel===-3?'':'sec'}" data-sel="-3">Schade openbaar domein</button><button class="sec" data-newseries>+ Reeks</button></div>
+   <div class="selbar"><button class="${S.sel===-2?'':'sec'}" data-sel="-2">Overzicht</button>${S.partijen.map((p,i)=>`<button class="${S.sel===i?'':'sec'}" data-sel="${i}">${pname(i)}</button>`).join('')}${S.type==='inbreuk'?'':`<button class="sec" id="addP">+ Partij ${letter(S.partijen.length)}</button>`}${S.series.map((r,i)=>`<button class="${S.sel===100+i?'':'sec'}" data-sel="${100+i}">${esc(r.naam)}</button>`).join('')}<button class="${S.sel===-3?'':'sec'}" data-sel="-3">Schade openbaar domein</button><button class="sec" data-newseries>+ Reeks</button></div>
    <button class="ok" data-go style="margin-top:14px;font-size:18px;line-height:1.3">📷 Neem foto's ${S.sel>=100?esc(S.series[S.sel-100].naam):S.sel===-3?'Schade openbaar domein':S.sel===-2?'Overzicht':pname(S.sel)} (${S.sel<0||S.sel>=100?bucket(S.sel).length:S.partijen[S.sel].photos.length+S.partijen[S.sel].veh.length})</button>
    ${(S.sel<0||S.sel>=100)&&bucket(S.sel).length?`<button class="danger" data-ovdel>Laatste foto wissen</button>`:''}
    ${S.sel>=100?`<div class="row"><button class="sec" data-renseries>Titel wijzigen</button><button class="danger" data-delseries>Reeks verwijderen</button></div>`:''}</div>
-   <div class="card"><h2>Dossier – ${typeNaam()}</h2><button class="sec" id="chType" style="margin:0 0 6px;padding:8px">Soort wijzigen</button>
+   <div class="card"><h2>Dossier – ${typeNaam()}</h2>
    <label>Plaats van ${S.type==='inbreuk'?'de inbreuk':'het ongeval'} (automatisch via GPS, controleer en pas zo nodig aan)</label><input type="text" id="plaats" value="${esc(S.plaats)}" placeholder="wordt ingevuld via GPS…" autocomplete="off">
    <button class="sec" id="relocate">📍 Plaats opnieuw bepalen</button>
    <label>Locatie (voorblad; leeg laten = de plaats hierboven)</label><input type="text" id="gebeurd" value="${esc(S.gebeurd||'')}" placeholder="bv. de E314 richting Aken ter hoogte KP 31,2" autocomplete="off"></div>`;
@@ -336,8 +336,7 @@ function render(){
       ${p.data.raw?`<details><summary class="small">Herkende tekst (om over te nemen wat ontbreekt)</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(p.data.raw)}</pre></details>`:''}`:''}
      <div class="row"><button class="sec" data-pass="${i}">+ Passagier-ID</button>${S.partijen.length>1?`<button class="danger" data-del="${i}">Wis partij</button>`:''}</div></div>`;
   });
-  h+=`${groups().length?`<button class="big" data-dos>👁 Voorvertoning</button>`:''}${S.type==='inbreuk'?'':`<button class="sec" id="addP">+ Partij ${letter(S.partijen.length)} toevoegen</button>`}
-   <button class="ok" id="send">✉️ Alles verzenden naar werkmailbox</button>
+  h+=`${groups().length?`<button class="big" data-dos>👁 Voorvertoning</button>`:''}   <button class="ok" id="send">✉️ Alles verzenden naar werkmailbox</button>
    <button class="danger" id="reset">Dossier wissen</button>
    <p class="small">Foto's blijven in de app (niet in je galerij) en worden gewist na verzenden.</p>`;
   $('#app').innerHTML=h;
@@ -345,7 +344,6 @@ function render(){
   $('#relocate').onclick=()=>locate(true);
   koppelMicro();
   $('#gebeurd').oninput=e=>{S.gebeurd=e.target.value;save()};
-  $('#chType').onclick=()=>{atStart=true;render()};
   document.querySelectorAll('[data-gsm]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.gsm].gsm=e.target.value;save()});
   document.querySelectorAll('[data-email]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.email].email=e.target.value;save()});
   document.querySelectorAll('[data-mode]').forEach(el=>el.onclick=()=>{S.mode=el.dataset.mode;save();render()});
