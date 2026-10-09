@@ -95,7 +95,10 @@ const STEPS=[
 const letter=i=>String.fromCharCode(65+i);
 // sel/cp: 0.. = partij, -2 = overzicht, -3 = schade openbaar domein, 100+ = zelfgemaakte reeks
 const bucket=c=>c>=100?S.series[c-100].l:c===-3?S.damage:S.overview;
-const whose=c=>c>=100?`horen bij <b>${esc(S.series[c-100].naam)}</b>`:c===-3?'zijn van <b>Schade openbaar domein</b>':c===-2?'zijn <b>overzichtsfoto\'s</b>':`zijn van <b>Partij ${letter(c)}</b>`;
+// Bij een verkeersinbreuk is er maar één betrokkene: dan nergens "Partij A" tonen
+const pname=i=>S.type==='inbreuk'?'Bestuurder':'Partij '+letter(i);
+const pkey=i=>S.type==='inbreuk'?'bestuurder':letter(i);
+const whose=c=>c>=100?`horen bij <b>${esc(S.series[c-100].naam)}</b>`:c===-3?'zijn van <b>Schade openbaar domein</b>':c===-2?'zijn <b>overzichtsfoto\'s</b>':S.type==='inbreuk'?'horen bij <b>de bestuurder</b>':`zijn van <b>Partij ${letter(c)}</b>`;
 const bucketName=c=>c>=100?S.series[c-100].naam:c===-3?'Schade openbaar domein':'Overzichtsfoto\'s';
 const FIELDS=[['bestuurder_naam','Naam bestuurder'],['bestuurder_geboortedatum','Geboortedatum'],['rijbewijsnummer','Rijbewijsnr'],['rijbewijs_categorieen','Categorieën'],['rijbewijs_geldig_tot','Rijbewijs geldig tot'],
  ['kenteken','Kenteken'],['merk_type','Merk/type'],['chassisnummer','Chassisnr'],['titularis_inschrijving','Titularis'],
@@ -225,8 +228,8 @@ function render(){
   if(!S.plaats&&!S.locTried){S.locTried=true;locate(false)}
   if(S.sel==null||S.sel===-1||(S.sel>=0&&S.sel<100&&S.sel>=S.partijen.length)||S.sel>=100+S.series.length)S.sel=0;
   let h=`<div class="card"><h2>${S.type==='inbreuk'?'Leg hier je inbreuk vast':'Wie fotografeer je?'}</h2>
-   <div class="selbar"><button class="${S.sel===-2?'':'sec'}" data-sel="-2">Overzicht</button>${S.partijen.map((p,i)=>`<button class="${S.sel===i?'':'sec'}" data-sel="${i}">Partij ${letter(i)}</button>`).join('')}${S.series.map((r,i)=>`<button class="${S.sel===100+i?'':'sec'}" data-sel="${100+i}">${esc(r.naam)}</button>`).join('')}<button class="${S.sel===-3?'':'sec'}" data-sel="-3">Schade openbaar domein</button><button class="sec" data-newseries>+ Reeks</button></div>
-   <button class="ok" data-go style="margin-top:14px;font-size:18px;line-height:1.3">📷 Neem foto's ${S.sel>=100?esc(S.series[S.sel-100].naam):S.sel===-3?'Schade openbaar domein':S.sel===-2?'Overzicht':'Partij '+letter(S.sel)} (${S.sel<0||S.sel>=100?bucket(S.sel).length:S.partijen[S.sel].photos.length+S.partijen[S.sel].veh.length})</button>
+   <div class="selbar"><button class="${S.sel===-2?'':'sec'}" data-sel="-2">Overzicht</button>${S.partijen.map((p,i)=>`<button class="${S.sel===i?'':'sec'}" data-sel="${i}">${pname(i)}</button>`).join('')}${S.series.map((r,i)=>`<button class="${S.sel===100+i?'':'sec'}" data-sel="${100+i}">${esc(r.naam)}</button>`).join('')}<button class="${S.sel===-3?'':'sec'}" data-sel="-3">Schade openbaar domein</button><button class="sec" data-newseries>+ Reeks</button></div>
+   <button class="ok" data-go style="margin-top:14px;font-size:18px;line-height:1.3">📷 Neem foto's ${S.sel>=100?esc(S.series[S.sel-100].naam):S.sel===-3?'Schade openbaar domein':S.sel===-2?'Overzicht':pname(S.sel)} (${S.sel<0||S.sel>=100?bucket(S.sel).length:S.partijen[S.sel].photos.length+S.partijen[S.sel].veh.length})</button>
    ${(S.sel<0||S.sel>=100)&&bucket(S.sel).length?`<button class="danger" data-ovdel>Laatste foto wissen</button>`:''}
    ${S.sel>=100?`<div class="row"><button class="sec" data-renseries>Titel wijzigen</button><button class="danger" data-delseries>Reeks verwijderen</button></div>`:''}</div>
    <div class="card"><h2>Dossier – ${typeNaam()}</h2><button class="sec" id="chType" style="margin:0 0 6px;padding:8px">Soort wijzigen</button>
@@ -238,7 +241,7 @@ function render(){
       const ks=STEPS.filter(s=>s.k.startsWith(pre)).map(s=>s.k),n=ks.filter(have).length,all=ks.every(skp)||(n===0&&ks.every(k=>skp(k)||!have(k))&&ks.some(skp));
       return `<span class="chip ${n?'done':all?'skip':''}">${n?'✓':all?'–':'○'} ${naam}${ks.length>1&&n?` (${n}/${ks.length})`:''}</span>`}).join('');
     const pas=p.photos.filter(x=>x.k.startsWith('passagier')).length;
-    h+=`<div class="card"><h2>Partij ${letter(i)}</h2>
+    h+=`<div class="card"><h2>${pname(i)}</h2>
      <label>E-mailadres bestuurder</label><input type="email" inputmode="email" autocapitalize="off" data-email="${i}" value="${esc(p.email)}" placeholder="typ of spreek in via toetsenbord-micro">
      <label>GSM-nummer bestuurder</label><input type="tel" inputmode="tel" autocomplete="off" data-gsm="${i}" value="${esc(p.gsm||'')}" placeholder="bv. 0470 12 34 56">
      <div class="chips">${chips}<span class="chip ${pas?'done':''}">👤 Passagiers: ${pas}</span></div>
@@ -249,7 +252,7 @@ function render(){
       ${p.data.raw?`<details><summary class="small">Herkende tekst (om over te nemen wat ontbreekt)</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(p.data.raw)}</pre></details>`:''}`:''}
      <div class="row"><button class="sec" data-pass="${i}">+ Passagier-ID</button>${S.partijen.length>1?`<button class="danger" data-del="${i}">Wis partij</button>`:''}</div></div>`;
   });
-  h+=`${groups().length?`<button class="big" data-dos>👁 Voorvertoning</button>`:''}<button class="sec" id="addP">+ Partij ${letter(S.partijen.length)} toevoegen</button>
+  h+=`${groups().length?`<button class="big" data-dos>👁 Voorvertoning</button>`:''}${S.type==='inbreuk'?'':`<button class="sec" id="addP">+ Partij ${letter(S.partijen.length)} toevoegen</button>`}
    <button class="ok" id="send">✉️ Alles verzenden naar werkmailbox</button>
    <button class="danger" id="reset">Dossier wissen</button>
    <p class="small">Foto's blijven in de app (niet in je galerij) en worden gewist na verzenden.</p>`;
@@ -268,13 +271,13 @@ function render(){
   const ds=document.querySelector('[data-delseries]');if(ds)ds.onclick=()=>{const r=S.series[S.sel-100];if(confirm(`Reeks "${r.naam}" met ${r.l.length} foto's verwijderen?`)){S.series.splice(S.sel-100,1);S.sel=0;save();render()}};
   document.querySelector('[data-go]').onclick=()=>startCapture(S.sel,false);
   document.querySelectorAll('[data-deldoc]').forEach(el=>el.onclick=()=>{const[i,k]=el.dataset.deldoc.split('|'),p=S.partijen[+i],x=p.photos.find(y=>y.k===k);
-    if(x&&confirm(`"${x.t}" van Partij ${letter(+i)} definitief verwijderen?`)){p.photos=p.photos.filter(y=>y.k!==k);save();render()}});
+    if(x&&confirm(`"${x.t}" van ${pname(+i)} definitief verwijderen?`)){p.photos=p.photos.filter(y=>y.k!==k);save();render()}});
   document.querySelectorAll('[data-ext]').forEach(el=>el.onclick=()=>extract(+el.dataset.ext));
   document.querySelectorAll('[data-f]').forEach(el=>el.oninput=e=>{const[i,k]=el.dataset.f.split('|');S.partijen[+i].data[k]=e.target.value;save()});
   document.querySelectorAll('[data-cap]').forEach(el=>el.onclick=()=>startCapture(+el.dataset.cap,false));
   document.querySelectorAll('[data-pass]').forEach(el=>el.onclick=()=>startCapture(+el.dataset.pass,true));
   document.querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{if(confirm('Partij wissen?')){S.partijen.splice(+el.dataset.del,1);S.sel=0;save();render()}});
-  $('#addP').onclick=()=>{S.partijen.push({email:'',photos:[],skipped:[],pass:0,veh:[]});S.sel=S.partijen.length-1;save();render()};
+  const addP=$('#addP');if(addP)addP.onclick=()=>{S.partijen.push({email:'',photos:[],skipped:[],pass:0,veh:[]});S.sel=S.partijen.length-1;save();render()};
   $('#send').onclick=()=>send();
   $('#reset').onclick=async()=>{if(confirm('Alle foto\'s en gegevens van dit dossier wissen?')){await DB.clear();S=fresh();render()}};
 }
@@ -304,7 +307,7 @@ function updGps(err){
 }
 function stamp(c,s){
   const d=new Date(),pad=n=>String(n).padStart(2,'0');
-  const l1=`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}  ·  Partij ${letter(cp)}  ·  ${s.t}`;
+  const l1=`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}  ·  ${pname(cp)}  ·  ${s.t}`;
   const l2=pos?`GPS ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}  (±${Math.round(pos.coords.accuracy)} m)`:'GPS niet beschikbaar';
   const x=c.getContext('2d'),fs=Math.max(18,Math.round(c.width/45)),h=fs*2.9;
   x.fillStyle='rgba(0,0,0,.72)';x.fillRect(0,c.height-h,c.width,h);
@@ -350,12 +353,12 @@ async function send(extra=[]){
   const p2=n=>String(n).padStart(2,'0');
   const stamp=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
   S.partijen.forEach((p,i)=>{
-    lines.push(`Partij ${letter(i)} – e-mail bestuurder: ${p.email||'(niet ingevuld)'}`,`   GSM bestuurder: ${p.gsm||'(niet ingevuld)'}`);
+    lines.push(`${S.type==='inbreuk'?'E-mail bestuurder':pname(i)+' – e-mail bestuurder'}: ${p.email||'(niet ingevuld)'}`,`   GSM bestuurder: ${p.gsm||'(niet ingevuld)'}`);
     if(p.data){FIELDS.forEach(([k,l])=>{if(p.data[k])lines.push(`   ${l}: ${p.data[k]}`)});(p.data.passagiers||[]).forEach(x=>{if(x.naam)lines.push(`   Passagier: ${x.naam} ${x.geboortedatum||''} ${x.rijksregisternummer||''}`)})}
     const missing=STEPS.filter(s=>!p.photos.some(x=>x.k===s.k)).map(s=>s.t+(p.skipped.includes(s.k)?' (overgeslagen)':''));
     if(missing.length)lines.push('   Ontbreekt: '+missing.join('; '));
-    p.veh.forEach((x,n)=>files.push(new File([x.blob],`${stamp}_${letter(i)}_voertuig_${String(n+1).padStart(2,'0')}.jpg`,{type:'image/jpeg'})));
-    p.photos.forEach(x=>files.push(new File([x.blob],`${stamp}_${letter(i)}_${x.k}.jpg`,{type:'image/jpeg'})));
+    p.veh.forEach((x,n)=>files.push(new File([x.blob],`${stamp}_${pkey(i)}_voertuig_${String(n+1).padStart(2,'0')}.jpg`,{type:'image/jpeg'})));
+    p.photos.forEach(x=>files.push(new File([x.blob],`${stamp}_${pkey(i)}_${x.k}.jpg`,{type:'image/jpeg'})));
   });
   S.overview.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');files.push(new File([x.blob],`${stamp}_overzicht_${nn}.jpg`,{type:'image/jpeg'}))});
   S.damage.forEach((x,n)=>{const nn=String(n+1).padStart(2,'0');files.push(new File([x.blob],`${stamp}_schade_openbaar_domein_${nn}.jpg`,{type:'image/jpeg'}))});
@@ -385,7 +388,7 @@ async function send(extra=[]){
 function groups(){
   const g=[];
   if(S.overview.length)g.push({t:'Overzichtsfoto\'s',l:S.overview});
-  S.partijen.forEach((p,i)=>{if(p.veh.length)g.push({t:'Partij '+letter(i),l:p.veh})});
+  S.partijen.forEach((p,i)=>{if(p.veh.length)g.push({t:pname(i),l:p.veh})});
   S.series.forEach(r=>{if(r.l.length)g.push({t:r.naam,l:r.l})});
   if(S.damage.length)g.push({t:'Schade openbaar domein',l:S.damage});
   return g;
@@ -559,7 +562,7 @@ async function makeSummary(){
     doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20);doc.text(t,M+55,y);y+=t.length*5+1.5};
   for(const {p,i} of ps){
     if(y>BOT-50){doc.addPage();y=M}
-    doc.setFillColor(...NAVY);doc.rect(M,y,2.2,7,'F');doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text(`PARTIJ ${letter(i)}`,M+5,y+5.3);
+    doc.setFillColor(...NAVY);doc.rect(M,y,2.2,7,'F');doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...NAVY);doc.text(pname(i).toUpperCase(),M+5,y+5.3);
     doc.setDrawColor(205);doc.setLineWidth(.25);doc.line(M,y+9,195,y+9);y+=14;
     if(p.email)row('E-mail bestuurder',p.email);
     if(p.gsm)row('GSM bestuurder',p.gsm);
