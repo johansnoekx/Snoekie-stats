@@ -61,6 +61,10 @@ button.big{background:linear-gradient(135deg,#2f80ed,#0b2a4a);font-size:20px;pad
 main.start{padding:12px}
 .startgrid{display:grid;grid-template-rows:1fr 1fr;gap:12px;height:calc(100vh - 64px - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));height:calc(100dvh - 64px - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:360px}
 #app button.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:100%;margin:0;padding:10px;background:var(--card);color:var(--ink);border:4px solid var(--pri);border-radius:22px;box-shadow:0 4px 14px #0002}
+/* tegel Verkeersongeval: echte foto als achtergrond, donkere balk onderaan voor de titel */
+#app button.tile.foto{background:linear-gradient(180deg,#0000 42%,#000c 100%),url(ongeval.jpg) center 30%/cover no-repeat;border-color:#0b2a4a;justify-content:flex-end;padding-bottom:20px}
+#app button.tile.foto b{color:#fff;text-shadow:0 2px 8px #000}
+#app button.tile.foto:active b{color:#fff}
 #app button.tile:active{background:var(--pri);color:#fff}#app button.tile:active b{color:#fff}
 #app button.tile span{font-size:clamp(64px,16vh,150px);line-height:1}#app button.tile span svg{display:block;height:clamp(90px,24vh,210px);width:auto;max-width:88vw}#app button.tile b{font-size:clamp(26px,5.2vh,46px);color:var(--pri)}
 .whose{margin:14px 0 4px;font-size:19px;color:var(--ink)}.whose b{color:var(--pri)}
@@ -229,7 +233,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 20:21'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 21:31'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -269,7 +273,7 @@ function renderStart(){
   const n=dossierInhoud(),lopend=!!S.type&&n>0;
   $('#app').classList.add('start');
   $('#app').innerHTML=`<div class="startgrid">
-   <button class="tile" data-type="ongeval"><span>${AUTOKNAL}</span><b>Verkeersongeval</b></button>
+   <button class="tile foto" data-type="ongeval"><b>Verkeersongeval</b></button>
    <button class="tile" data-type="inbreuk"><span>🚦</span><b>Verkeersinbreuk</b></button></div>`;
   document.querySelectorAll('[data-type]').forEach(el=>el.onclick=async()=>{
     const t=el.dataset.type;
@@ -288,7 +292,8 @@ function renderSetup(){
    <label>Naam (onderaan het fotodossier)</label><input type="text" id="cNaam" value="${esc(c.naam||'')}" placeholder="Voornaam Naam">
    <label>Graad</label><input type="text" id="cGraad" value="${esc(c.graad||'')}" placeholder="bv. 1ste Inspecteur">
    <button class="ok" id="cSave">Opslaan</button>${first?'':'<button class="sec" id="cBack">Terug</button>'}</div>
-   <p class="small" style="text-align:center">Snoekie Stats · versie ${VERSIE}</p>`;
+   <p class="small" style="text-align:center">Snoekie Stats · versie ${VERSIE}</p>
+   <p class="small" style="text-align:center;font-size:12px">Foto Verkeersongeval: Vulkan0808, Wikimedia Commons, <a href="https://creativecommons.org/licenses/by-sa/3.0" target="_blank" rel="noopener">CC BY-SA 3.0</a> (bijgesneden)</p>`;
   koppelMicro();
   $('#cSave').onclick=()=>{const n={mail:$('#cMail').value.trim(),naam:$('#cNaam').value.trim(),graad:$('#cGraad').value.trim()};
     if(!/^\S+@\S+\.\S+$/.test(n.mail)){alert('Vul een geldig e-mailadres in.');return}
