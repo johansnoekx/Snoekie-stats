@@ -229,7 +229,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 19:51'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 19:52'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -532,12 +532,14 @@ function startPreview(){
 function vraagPv(){
   $('#dosIn').innerHTML=`<div class="card" style="margin-top:20px"><h2>PV-nummer voor het fotodossier</h2>
     <div class="microw"><input type="text" id="pvIn" value="${esc(S.pv||'')}" placeholder="bv. 300554/25" autocomplete="off">${MIC()?'<button class="mic" id="pvMic" aria-label="Inspreken">🎤</button>':''}</div>
-    <button class="ok" id="pvGo">Doorgaan</button><button class="sec" id="pvSkip">Nog niet bekend</button></div>
+    <p id="pvHint" class="small" style="color:#c62828;display:none;margin:6px 0 0">Vul eerst het PV-nummer in.</p>
+    <button class="ok" id="pvGo">Doorgaan</button></div>
     <button class="sec" id="pvBack">Terug</button>`;
   $('#dos').style.display='block';$('#dos').scrollTop=0;
   const m=$('#pvMic');if(m)m.onclick=()=>dicteer('pv',v=>{$('#pvIn').value=v},m);
-  $('#pvGo').onclick=()=>{S.pv=$('#pvIn').value.trim();if(!S.pv)pvSkip=true;save();startPreview()};
-  $('#pvSkip').onclick=()=>{pvSkip=true;startPreview()};
+  $('#pvGo').onclick=()=>{const v=$('#pvIn').value.trim();
+    if(!v){$('#pvHint').style.display='block';$('#pvIn').focus();return}
+    S.pv=v;save();startPreview()};
   $('#pvBack').onclick=()=>{$('#dos').style.display='none'};
 }
 function vraagTitel(){
