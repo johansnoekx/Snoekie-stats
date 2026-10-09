@@ -57,6 +57,8 @@ button.big{background:linear-gradient(135deg,#2f80ed,#0b2a4a);font-size:20px;pad
 .paper .ph img{width:100%;height:auto;display:block;border-radius:2px;border:1px solid #d6d6d6;box-shadow:1px 2px 6px rgba(0,0,0,.28)}
 .paper .nb{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:#0b2a4a;color:#fff;border:2px solid #fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .paper .sig{margin-top:30px;border-top:2px solid #0b2a4a;width:60%;padding-top:10px}.paper .sig p{margin:0 0 20px}.paper .sig .sn{font-weight:700;margin:0}
+#app button.tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:22px 14px;margin:12px 0;background:var(--card);color:var(--ink);border:3px solid var(--pri);border-radius:16px;box-shadow:0 3px 10px #0002}
+#app button.tile span{font-size:46px;line-height:1.1}#app button.tile b{font-size:23px;color:var(--pri)}#app button.tile small{font-size:14px;font-weight:400;color:var(--mut)}
 .whose{margin:14px 0 4px;font-size:19px;color:var(--ink)}.whose b{color:var(--pri)}
 .selbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
 #app .selbar button{margin:0;padding:14px 6px;font-size:15px;overflow-wrap:anywhere;line-height:1.2}
@@ -191,15 +193,24 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-function renderType(){
-  $('#app').innerHTML=`<div class="card"><h2>Wat wil je vastleggen?</h2>
-   <button class="big" data-type="ongeval">🚗 Verkeersongeval</button>
-   <button class="big" data-type="inbreuk">🚦 Verkeersinbreuk</button></div>`;
-  document.querySelectorAll('[data-type]').forEach(el=>el.onclick=()=>{
-    S.type=el.dataset.type;
-    const leeg=S.partijen.every(p=>!p.photos.length&&!p.veh.length&&!p.email&&!p.gsm&&!p.data);
-    if(leeg)S.partijen=Array.from({length:S.type==='inbreuk'?1:2},()=>({email:'',photos:[],skipped:[],pass:0,veh:[]}));
-    S.sel=S.type==='inbreuk'?0:-2;save();render()});
+let atStart=true; // bij het openen van de app altijd eerst het startscherm
+const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
+function renderStart(){
+  const n=dossierInhoud(),lopend=!!S.type&&n>0;
+  $('#app').innerHTML=`<div class="card" style="text-align:center"><h2 style="font-size:24px;margin:8px 0 2px">Wat wil je vastleggen?</h2>
+   <p class="small" style="margin:0 0 6px">Kies om te starten</p>
+   <button class="tile" data-type="ongeval"><span>🚗</span><b>Verkeersongeval</b><small>Foto's per partij, fotodossier en samenvatting</small></button>
+   <button class="tile" data-type="inbreuk"><span>🚦</span><b>Verkeersinbreuk</b><small>Foto's van één bestuurder, fotodossier en samenvatting</small></button></div>
+   ${lopend?`<div class="card"><p style="margin:0 0 6px"><b>Lopend dossier:</b> ${typeNaam()} · ${n} foto${n>1?"'s":''}</p><button class="sec" id="resume">▶ Doorgaan met dit dossier</button></div>`:''}`;
+  const r=$('#resume');if(r)r.onclick=()=>{atStart=false;render()};
+  document.querySelectorAll('[data-type]').forEach(el=>el.onclick=async()=>{
+    const t=el.dataset.type;
+    if(lopend&&S.type===t){atStart=false;render();return} // zelfde soort: gewoon verder met het lopende dossier
+    if(lopend){ if(!confirm(`Het lopende dossier (${typeNaam()}, ${n} foto${n>1?"'s":''}) wissen en een nieuw dossier starten?`))return;
+      await DB.clear();S=fresh()}
+    S.type=t;
+    S.partijen=Array.from({length:t==='inbreuk'?1:2},()=>({email:'',photos:[],skipped:[],pass:0,veh:[]}));
+    S.sel=t==='inbreuk'?0:-2;atStart=false;save();render()});
 }
 function renderSetup(){
   const c=cfg(),first=!cfgOk();
@@ -225,7 +236,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function render(){
   $('#dossierLabel').textContent=S.plaats||'';
   if(!cfgOk()||S.editCfg)return renderSetup();
-  if(!S.type)return renderType();
+  if(atStart||!S.type)return renderStart();
   if(!S.plaats&&!S.locTried){S.locTried=true;locate(false)}
   if(S.sel==null||S.sel===-1||(S.sel>=0&&S.sel<100&&S.sel>=S.partijen.length)||S.sel>=100+S.series.length)S.sel=0;
   let h=`<div class="card"><h2>${S.type==='inbreuk'?'Leg hier je inbreuk vast':'Wie fotografeer je?'}</h2>
@@ -264,7 +275,7 @@ function render(){
   $('#relocate').onclick=()=>locate(true);
   $('#pv').oninput=e=>{S.pv=e.target.value;save()};
   $('#gebeurd').oninput=e=>{S.gebeurd=e.target.value;save()};
-  $('#chType').onclick=()=>{S.type=null;save();render()};
+  $('#chType').onclick=()=>{atStart=true;render()};
   document.querySelectorAll('[data-gsm]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.gsm].gsm=e.target.value;save()});
   document.querySelectorAll('[data-email]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.email].email=e.target.value;save()});
   document.querySelectorAll('[data-mode]').forEach(el=>el.onclick=()=>{S.mode=el.dataset.mode;save();render()});
