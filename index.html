@@ -238,7 +238,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 22:52'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 22:54'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -328,7 +328,7 @@ function render(){
    <div class="card"><h2>Dossier – ${typeNaam()}</h2>
    <label>Plaats van ${S.type==='inbreuk'?'de inbreuk':'het ongeval'} (automatisch via GPS, controleer en pas zo nodig aan)</label><input type="text" id="plaats" value="${esc(S.plaats)}" placeholder="wordt ingevuld via GPS…" autocomplete="off">
    <button class="sec" id="relocate">📍 Plaats opnieuw bepalen</button>
-   <label>Locatie (voorblad; leeg laten = de plaats hierboven)</label><input type="text" id="gebeurd" value="${esc(S.gebeurd||'')}" placeholder="bv. de E314 richting Aken ter hoogte KP 31,2" autocomplete="off"></div>`;
+   <label>Geef zelf de locatie in</label><input type="text" id="gebeurd" value="${esc(S.gebeurd||'')}" placeholder="bv. de E314 richting Aken ter hoogte KP 31,2" autocomplete="off"></div>`;
   S.partijen.forEach((p,i)=>{
     const have=k=>p.photos.some(x=>x.k===k), skp=k=>p.skipped.includes(k);
     const chips=[['inschrijving','Inschrijvingsbewijs'],['verzekering','Verzekeringsbewijs'],['keuring','Keuringsbewijs'],['rijbewijs','Rijbewijs'],...(S.type==='inbreuk'?[['id','Identiteitskaart']]:[])].map(([pre,naam])=>{
