@@ -189,11 +189,13 @@ const cijfers=s=>s.replace(/\b(nul|een|twee|drie|vier|vijf|zes|zeven|acht|negen)
 const naarEmail=t=>{let s=' '+t.toLowerCase()+' ';
   [[/\b(apenstaartje|apenstaart|ad)\b/g,'@'],[/\b(at)\b/g,'@'],[/\b(punt|dot)\b/g,'.'],[/\b(laag streepje|liggend streepje|underscore)\b/g,'_'],[/\b(streepje|koppelteken|min)\b/g,'-']].forEach(([re,v])=>s=s.replace(re,v));
   return cijfers(s).replace(/\s+/g,'').replace(/[^a-z0-9@._+-]/g,'')};
+// "drie nul nul vijf vijf vier schuine streep twee vijf" -> 300554/25
+const naarPv=t=>cijfers(t.toLowerCase().replace(/\b(schuine streep|slash|streep)\b/g,'/').replace(/\bpunt\b/g,'.')).replace(/\s+/g,'').replace(/[^0-9a-z\/.-]/g,'');
 const naarNummer=t=>cijfers(t.toLowerCase().replace(/\bplus\b/g,'+')).replace(/[^\d+]/g,'');
 function dicteer(kind,klaar,btn){
   if(!SR){alert('Inspreken werkt niet in deze browser. Gebruik Chrome (Android) of Safari (iPhone).');return}
   const r=new SR();r.lang='nl-BE';r.interimResults=false;r.maxAlternatives=1;btn.classList.add('on');
-  r.onresult=e=>klaar(kind==='gsm'?naarNummer(e.results[0][0].transcript):naarEmail(e.results[0][0].transcript));
+  r.onresult=e=>{const t=e.results[0][0].transcript;klaar(kind==='gsm'?naarNummer(t):kind==='pv'?naarPv(t):naarEmail(t))};
   r.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed')alert('Sta de microfoon toe voor deze pagina om te kunnen inspreken.')};
   r.onend=()=>btn.classList.remove('on');
   try{r.start()}catch{btn.classList.remove('on')}
@@ -223,7 +225,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 19:45'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 19:46'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -272,7 +274,7 @@ function renderStart(){
       await DB.clear();S=fresh()}
     S.type=t;
     S.partijen=Array.from({length:t==='inbreuk'?1:2},()=>({email:'',photos:[],skipped:[],pass:0,veh:[]}));
-    S.sel=t==='inbreuk'?0:-2;atStart=false;save();render()});
+    S.sel=t==='inbreuk'?0:-2;atStart=false;pvSkip=false;save();render()});
 }
 function renderSetup(){
   const c=cfg(),first=!cfgOk();
@@ -312,7 +314,6 @@ function render(){
    <div class="card"><h2>Dossier – ${typeNaam()}</h2><button class="sec" id="chType" style="margin:0 0 6px;padding:8px">Soort wijzigen</button>
    <label>Plaats van ${S.type==='inbreuk'?'de inbreuk':'het ongeval'} (automatisch via GPS, controleer en pas zo nodig aan)</label><input type="text" id="plaats" value="${esc(S.plaats)}" placeholder="wordt ingevuld via GPS…" autocomplete="off">
    <button class="sec" id="relocate">📍 Plaats opnieuw bepalen</button>
-   <label>PV-nummer (optioneel; kan ook later op kantoor in de PDF ingevuld worden)</label><input type="text" id="pv" value="${esc(S.pv||'')}" placeholder="bv. 300554/25" autocomplete="off">
    <label>Locatie (voorblad; leeg laten = de plaats hierboven)</label><input type="text" id="gebeurd" value="${esc(S.gebeurd||'')}" placeholder="bv. de E314 richting Aken ter hoogte KP 31,2" autocomplete="off"></div>`;
   S.partijen.forEach((p,i)=>{
     const have=k=>p.photos.some(x=>x.k===k), skp=k=>p.skipped.includes(k);
@@ -339,7 +340,6 @@ function render(){
   $('#plaats').oninput=e=>{S.plaats=e.target.value;$('#dossierLabel').textContent=S.plaats;save()};
   $('#relocate').onclick=()=>locate(true);
   koppelMicro();
-  $('#pv').oninput=e=>{S.pv=e.target.value;save()};
   $('#gebeurd').oninput=e=>{S.gebeurd=e.target.value;save()};
   $('#chType').onclick=()=>{atStart=true;render()};
   document.querySelectorAll('[data-gsm]').forEach(el=>el.oninput=e=>{S.partijen[+el.dataset.gsm].gsm=e.target.value;save()});
@@ -519,7 +519,24 @@ function openDossier(skip){
   $('#toPrev').onclick=openPreview;
 }
 // Bij een verkeersinbreuk eerst vragen of er een titel boven de foto's moet
+// Eerst het PV-nummer vragen (dat weet je pas op kantoor), dan bij een inbreuk de titel, dan de voorvertoning
+let pvSkip=false;
 function startPreview(){
+  if(!(S.pv||'').trim()&&!pvSkip)return vraagPv();
+  vraagTitel();
+}
+function vraagPv(){
+  $('#dosIn').innerHTML=`<div class="card" style="margin-top:20px"><h2>PV-nummer voor het fotodossier</h2>
+    <div class="microw"><input type="text" id="pvIn" value="${esc(S.pv||'')}" placeholder="bv. 300554/25" autocomplete="off">${SR?'<button class="mic" id="pvMic" aria-label="Inspreken">🎤</button>':''}</div>
+    <button class="ok" id="pvGo">Doorgaan</button><button class="sec" id="pvSkip">Nog niet bekend</button></div>
+    <button class="sec" id="pvBack">Terug</button>`;
+  $('#dos').style.display='block';$('#dos').scrollTop=0;
+  const m=$('#pvMic');if(m)m.onclick=()=>dicteer('pv',v=>{$('#pvIn').value=v},m);
+  $('#pvGo').onclick=()=>{S.pv=$('#pvIn').value.trim();if(!S.pv)pvSkip=true;save();startPreview()};
+  $('#pvSkip').onclick=()=>{pvSkip=true;startPreview()};
+  $('#pvBack').onclick=()=>{$('#dos').style.display='none'};
+}
+function vraagTitel(){
   if(S.type==='inbreuk'&&!S.titleAsked){
     $('#dosIn').innerHTML=`<div class="card" style="margin-top:20px"><h2>Wil je een titel toevoegen aan het fotodossier?</h2>
       <div id="tq"><button class="ok" id="tYes">Ja</button><button class="sec" id="tNo">Nee</button></div>
