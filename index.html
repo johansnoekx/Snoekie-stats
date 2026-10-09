@@ -201,10 +201,7 @@ function renderStart(){
   $('#app').innerHTML=`<div class="card" style="text-align:center"><h2 style="font-size:24px;margin:8px 0 2px">Wat wil je vastleggen?</h2>
    <p class="small" style="margin:0 0 6px">Kies om te starten</p>
    <button class="tile" data-type="ongeval"><span>🚗</span><b>Verkeersongeval</b><small>Foto's per partij, fotodossier en samenvatting</small></button>
-   <button class="tile" data-type="inbreuk"><span>🚦</span><b>Verkeersinbreuk</b><small>Foto's van één bestuurder, fotodossier en samenvatting</small></button></div>
-   ${lopend?`<div class="card"><p style="margin:0 0 6px"><b>Lopend dossier:</b> ${typeNaam()} · ${n} foto${n>1?"'s":''}</p><button class="sec" id="resume">▶ Doorgaan met dit dossier</button></div>`:''}
-   <p class="small" style="text-align:center">Snoekie Stats · versie ${VERSIE}</p>`;
-  const r=$('#resume');if(r)r.onclick=()=>{atStart=false;render()};
+   <button class="tile" data-type="inbreuk"><span>🚦</span><b>Verkeersinbreuk</b><small>Foto's van één bestuurder, fotodossier en samenvatting</small></button></div>`;
   document.querySelectorAll('[data-type]').forEach(el=>el.onclick=async()=>{
     const t=el.dataset.type;
     if(lopend&&S.type===t){atStart=false;render();return} // zelfde soort: gewoon verder met het lopende dossier
@@ -221,7 +218,8 @@ function renderSetup(){
    <label>Werkmailadres (hierheen verstuur je de foto's)</label><input type="email" id="cMail" autocapitalize="off" value="${esc(c.mail||'')}" placeholder="voornaam.naam@police.belgium.eu">
    <label>Naam (onderaan het fotodossier)</label><input type="text" id="cNaam" value="${esc(c.naam||'')}" placeholder="Voornaam Naam">
    <label>Graad</label><input type="text" id="cGraad" value="${esc(c.graad||'')}" placeholder="bv. 1ste Inspecteur">
-   <button class="ok" id="cSave">Opslaan</button>${first?'':'<button class="sec" id="cBack">Terug</button>'}</div>`;
+   <button class="ok" id="cSave">Opslaan</button>${first?'':'<button class="sec" id="cBack">Terug</button>'}</div>
+   <p class="small" style="text-align:center">Snoekie Stats · versie ${VERSIE}</p>`;
   $('#cSave').onclick=()=>{const n={mail:$('#cMail').value.trim(),naam:$('#cNaam').value.trim(),graad:$('#cGraad').value.trim()};
     if(!/^\S+@\S+\.\S+$/.test(n.mail)){alert('Vul een geldig e-mailadres in.');return}
     if(!n.naam||!n.graad){alert('Vul naam en graad in.');return}
