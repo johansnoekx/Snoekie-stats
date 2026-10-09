@@ -183,6 +183,10 @@ function toast(m){let t=$('#toast');if(!t){t=document.createElement('div');t.id=
   t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',6000)}
 // ---------- Inspreken (microfoon) voor e-mailadres en GSM-nummer ----------
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+// de 🎤-knoppen verdwijnen op toestellen zonder microfoon (bv. een pc)
+let HASMIC=true;
+const MIC=()=>!!SR&&HASMIC;
+if(navigator.mediaDevices&&navigator.mediaDevices.enumerateDevices)navigator.mediaDevices.enumerateDevices().then(d=>{HASMIC=d.some(x=>x.kind==='audioinput');if(!HASMIC&&typeof S!=='undefined'&&S)render()}).catch(()=>{});
 const CIJFERS={nul:0,een:1,twee:2,drie:3,vier:4,vijf:5,zes:6,zeven:7,acht:8,negen:9};
 const cijfers=s=>s.replace(/\b(nul|een|twee|drie|vier|vijf|zes|zeven|acht|negen)\b/g,w=>CIJFERS[w]);
 // "jan punt jansen apenstaartje gmail punt com" -> jan.jansen@gmail.com
@@ -225,7 +229,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 19:46'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 19:51'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -280,7 +284,7 @@ function renderSetup(){
   const c=cfg(),first=!cfgOk();
   $('#app').innerHTML=`<div class="card"><h2>${first?'Welkom @ Snoekie Stats':'Instellingen'}</h2>${first?'<p style="margin:0 0 6px;font-weight:700;color:var(--pri)">Eenmalig instellen</p>':''}
    <p class="small">Dit wordt op dit toestel onthouden. Collega's vullen hun eigen gegevens in op hun eigen toestel.</p>
-   <label>Werkmailadres (hierheen verstuur je de foto's)</label><div class="microw"><input type="email" id="cMail" autocapitalize="off" value="${esc(c.mail||'')}" placeholder="voornaam.naam@police.belgium.eu">${SR?'<button class="mic" data-mic="setup" aria-label="Inspreken">🎤</button>':''}</div>
+   <label>Werkmailadres (hierheen verstuur je de foto's)</label><div class="microw"><input type="email" id="cMail" autocapitalize="off" value="${esc(c.mail||'')}" placeholder="voornaam.naam@police.belgium.eu">${MIC()?'<button class="mic" data-mic="setup" aria-label="Inspreken">🎤</button>':''}</div>
    <label>Naam (onderaan het fotodossier)</label><input type="text" id="cNaam" value="${esc(c.naam||'')}" placeholder="Voornaam Naam">
    <label>Graad</label><input type="text" id="cGraad" value="${esc(c.graad||'')}" placeholder="bv. 1ste Inspecteur">
    <button class="ok" id="cSave">Opslaan</button>${first?'':'<button class="sec" id="cBack">Terug</button>'}</div>
@@ -322,8 +326,8 @@ function render(){
       return `<span class="chip ${n?'done':all?'skip':''}">${n?'✓':all?'–':'○'} ${naam}${ks.length>1&&n?` (${n}/${ks.length})`:''}</span>`}).join('');
     const pas=p.photos.filter(x=>x.k.startsWith('passagier')).length;
     h+=`<div class="card"><h2>${pname(i)}</h2>
-     <label>E-mailadres bestuurder</label><div class="microw"><input type="email" inputmode="email" autocapitalize="off" data-email="${i}" value="${esc(p.email)}" placeholder="typ of tik op 🎤 en spreek in">${SR?`<button class="mic" data-mic="email|${i}" aria-label="Inspreken">🎤</button>`:''}</div>
-     <label>GSM-nummer bestuurder</label><div class="microw"><input type="tel" inputmode="tel" autocomplete="off" data-gsm="${i}" value="${esc(p.gsm||'')}" placeholder="bv. 0470 12 34 56">${SR?`<button class="mic" data-mic="gsm|${i}" aria-label="Inspreken">🎤</button>`:''}</div>
+     <label>E-mailadres bestuurder</label><div class="microw"><input type="email" inputmode="email" autocapitalize="off" data-email="${i}" value="${esc(p.email)}" placeholder="typ of tik op 🎤 en spreek in">${MIC()?`<button class="mic" data-mic="email|${i}" aria-label="Inspreken">🎤</button>`:''}</div>
+     <label>GSM-nummer bestuurder</label><div class="microw"><input type="tel" inputmode="tel" autocomplete="off" data-gsm="${i}" value="${esc(p.gsm||'')}" placeholder="bv. 0470 12 34 56">${MIC()?`<button class="mic" data-mic="gsm|${i}" aria-label="Inspreken">🎤</button>`:''}</div>
      <div class="chips">${chips}<span class="chip ${pas?'done':''}">👤 Passagiers: ${pas}</span></div>
      ${p.photos.length?`<details><summary class="small">Documentfoto's beheren (${p.photos.length})</summary>${p.photos.map(x=>`<div class="row" style="align-items:center;margin-top:6px"><span class="small" style="flex:2">${esc(x.t)}</span><button class="danger" style="margin:0;padding:8px" data-deldoc="${i}|${x.k}">🗑 Verwijderen</button></div>`).join('')}</details>`:''}
      <button class="sec" data-ext="${i}">🔎 Gegevens automatisch uitlezen</button>
@@ -527,7 +531,7 @@ function startPreview(){
 }
 function vraagPv(){
   $('#dosIn').innerHTML=`<div class="card" style="margin-top:20px"><h2>PV-nummer voor het fotodossier</h2>
-    <div class="microw"><input type="text" id="pvIn" value="${esc(S.pv||'')}" placeholder="bv. 300554/25" autocomplete="off">${SR?'<button class="mic" id="pvMic" aria-label="Inspreken">🎤</button>':''}</div>
+    <div class="microw"><input type="text" id="pvIn" value="${esc(S.pv||'')}" placeholder="bv. 300554/25" autocomplete="off">${MIC()?'<button class="mic" id="pvMic" aria-label="Inspreken">🎤</button>':''}</div>
     <button class="ok" id="pvGo">Doorgaan</button><button class="sec" id="pvSkip">Nog niet bekend</button></div>
     <button class="sec" id="pvBack">Terug</button>`;
   $('#dos').style.display='block';$('#dos').scrollTop=0;
