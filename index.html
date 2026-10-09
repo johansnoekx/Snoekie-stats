@@ -64,6 +64,8 @@ main.start{padding:12px}
 /* tegel Verkeersongeval: echte foto als achtergrond, donkere balk onderaan voor de titel */
 #app button.tile.foto{background:linear-gradient(180deg,#0000 42%,#000c 100%),var(--bg,url(ongeval.jpg)) center 30%/cover no-repeat;border-color:#0b2a4a;justify-content:flex-end;padding-bottom:20px}
 #app button.tile.foto b{color:#fff;text-shadow:0 2px 8px #000}
+#app button.tile.foto .vrow{display:flex;align-items:center;justify-content:center;gap:clamp(14px,3.5vh,32px)}
+#app button.tile.foto .vrow img{height:clamp(46px,10.5vh,92px);width:auto;filter:drop-shadow(0 4px 10px #000c)}
 #app button.tile.foto span.vl{font-size:clamp(56px,13vh,120px);filter:drop-shadow(0 4px 10px #000c);margin-bottom:-2px}
 #app button.tile.foto:active b{color:#fff}
 #app button.tile:active{background:var(--pri);color:#fff}#app button.tile:active b{color:#fff}
@@ -234,7 +236,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 22:42'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 22:44'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -275,7 +277,7 @@ function renderStart(){
   $('#app').classList.add('start');
   $('#app').innerHTML=`<div class="startgrid">
    <button class="tile foto" data-type="ongeval" style="--bg:url(ongeval.jpg)"><b>Verkeersongeval</b></button>
-   <button class="tile foto" data-type="inbreuk" style="--bg:url(inbreuk.jpg)"><span class="vl">🚦</span><b>Verkeersinbreuk</b></button></div>`;
+   <button class="tile foto" data-type="inbreuk" style="--bg:url(inbreuk.jpg)"><div class="vrow"><img src="c39.svg" alt="C39 inhaalverbod voor vrachtwagens"><span class="vl">🚦</span><img src="c1.svg" alt="C1 verboden toegang"></div><b>Verkeersinbreuk</b></button></div>`;
   document.querySelectorAll('[data-type]').forEach(el=>el.onclick=async()=>{
     const t=el.dataset.type;
     if(lopend&&S.type===t){atStart=false;render();return} // zelfde soort: gewoon verder met het lopende dossier

@@ -1,5 +1,5 @@
 // Altijd eerst de nieuwste versie ophalen (netwerk eerst); de cache is enkel een noodoplossing zonder internet.
-const C='vaststelling-v5',F=['./','index.html','manifest.json','icon.svg','ongeval.jpg','inbreuk.jpg'];
+const C='vaststelling-v6',F=['./','index.html','manifest.json','icon.svg','ongeval.jpg','inbreuk.jpg','c1.svg','c39.svg'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F)))});
 self.addEventListener('activate',e=>e.waitUntil(
   caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
