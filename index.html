@@ -417,7 +417,7 @@ function openDossier(skip){
   const g=groups();if(!g.length){$('#dos').style.display='none';return}
   const st=$('#dos').scrollTop;
   let h='<h2 style="margin-top:16px">Titels en foto\'s</h2><p class="small">Geef elke foto een eigen titel (bv. "Schade voorzijde partij A"). Foto\'s die na elkaar dezelfde titel hebben, komen samen onder één titel te staan. Gebruik daarvoor "Zelfde titel als vorige foto".</p>';
-  if(S.type==='inbreuk')h+=`<div class="card"><label>Titel boven de foto's van het fotodossier (leeg laten = geen titel)</label><input type="text" data-dtitle value="${esc(S.dossTitle||'')}" placeholder="bv. Parkeren op het fietspad"></div>`;
+  if(S.type==='inbreuk')h+=`<div class="card"><label>Titel fotodossier</label><input type="text" data-dtitle value="${esc(S.dossTitle||'')}" placeholder="bv. Parkeren op het fietspad"></div>`;
   g.forEach((x,gi)=>{h+=`<div class="card"><h2>${esc(x.t)}</h2><label class="chk"><input type="checkbox" data-gall="${gi}" ${x.l.every(f=>f.off)?'':'checked'}> Dit titelblok opnemen in het fotodossier</label>`;
     x.l.forEach((f,fi)=>{h+=`<label class="chk"><input type="checkbox" data-on="${gi}|${fi}" ${f.off?'':'checked'}> Foto opnemen</label><img style="${f.off?'opacity:.35':''}" src="${URL.createObjectURL(f.blob)}" alt=""><input type="text" data-cap="${gi}|${fi}" value="${esc(f.cap||'')}" placeholder="Titel van deze foto" style="margin:6px 0 6px">
       <div class="row">${fi>0?`<button class="sec" style="margin:0 0 16px;padding:10px" data-same="${gi}|${fi}">↳ Zelfde titel als vorige</button>`:''}<button class="danger" style="margin:0 0 16px;padding:10px" data-delph="${gi}|${fi}">🗑 Verwijderen</button></div>`});h+='</div>'});
@@ -438,7 +438,7 @@ function startPreview(){
   if(S.type==='inbreuk'&&!S.titleAsked){
     $('#dosIn').innerHTML=`<div class="card" style="margin-top:20px"><h2>Wil je een titel toevoegen aan het fotodossier?</h2>
       <div id="tq"><button class="ok" id="tYes">Ja</button><button class="sec" id="tNo">Nee</button></div>
-      <div id="tIn" style="display:none"><label>Titel (komt boven de foto's)</label><input type="text" id="tVal" value="${esc(S.dossTitle||'')}" placeholder="bv. Parkeren op het fietspad"><button class="ok" id="tGo">Doorgaan</button></div></div>
+      <div id="tIn" style="display:none"><label>Titel fotodossier</label><input type="text" id="tVal" value="${esc(S.dossTitle||'')}" placeholder="bv. Parkeren op het fietspad"><button class="ok" id="tGo">Doorgaan</button></div></div>
       <button class="sec" id="tBack">Terug</button>`;
     $('#dos').style.display='block';$('#dos').scrollTop=0;
     $('#tYes').onclick=()=>{$('#tq').style.display='none';$('#tIn').style.display='block';$('#tVal').focus()};
