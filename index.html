@@ -238,7 +238,7 @@ function locate(force){
 }
 // Eerste keuze bij elk nieuw dossier: verkeersongeval of verkeersinbreuk
 const typeNaam=()=>S.type==='inbreuk'?'Verkeersinbreuk':'Verkeersongeval';
-const VERSIE='9 okt 2026 · 22:50'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
+const VERSIE='9 okt 2026 · 22:52'; // wordt getoond onderaan, zodat je ziet welke versie je gsm gebruikt
 let atStart=true; // bij het openen van de app altijd eerst het startscherm
 const dossierInhoud=()=>S.overview.length+S.damage.length+S.series.reduce((n,r)=>n+r.l.length,0)+S.partijen.reduce((n,p)=>n+p.photos.length+(p.veh||[]).length,0);
 // logo verkeersongeval: twee auto's die frontaal tegen elkaar botsen (zelf getekend, met schaduw en weerspiegeling)
@@ -320,7 +320,7 @@ function render(){
   if(atStart||!S.type)return renderStart();
   if(!S.plaats&&!S.locTried){S.locTried=true;locate(false)}
   if(S.sel==null||S.sel===-1||((S.sel===-3||S.sel===-2)&&S.type==='inbreuk')||(S.sel>=0&&S.sel<100&&S.sel>=S.partijen.length)||S.sel>=100+S.series.length)S.sel=0;
-  let h=`<div class="card"><h2>${S.type==='inbreuk'?'Leg hier je inbreuk vast':'Wie fotografeer je?'}</h2>
+  let h=`<div class="card"><h2>${S.type==='inbreuk'?'VASTSTELLINGEN':'Wie fotografeer je?'}</h2>
    <div class="selbar">${S.type==='inbreuk'?'':`<button class="${S.sel===-2?'':'sec'}" data-sel="-2">Overzicht</button>`}${S.type==='inbreuk'?`<button class="${S.sel===0&&S.sub!=='doc'?'':'sec'}" data-sel="0" data-subsel="schade">Fotodossier</button><button class="${S.sel===0&&S.sub==='doc'?'':'sec'}" data-sel="0" data-subsel="doc">Boorddocumenten/ID/RB</button>`:S.partijen.map((p,i)=>`<button class="${S.sel===i?'':'sec'}" data-sel="${i}">${pname(i)}</button>`).join('')}${S.type==='inbreuk'?'':`<button class="sec" id="addP">+ Partij ${letter(S.partijen.length)}</button>`}${S.series.map((r,i)=>`<button class="${S.sel===100+i?'':'sec'}" data-sel="${100+i}">${esc(r.naam)}</button>`).join('')}${S.type==='inbreuk'?'':`<button class="${S.sel===-3?'':'sec'}" data-sel="-3">Schade openbaar domein</button>`}<button class="sec" data-newseries>${S.type==='inbreuk'?'+ Nieuwe titel':'+ Reeks'}</button></div>
    <button class="ok" data-go style="margin-top:14px;font-size:18px;line-height:1.3">📷 Neem foto's ${S.sel>=100?esc(S.series[S.sel-100].naam):S.sel===-3?'Schade openbaar domein':S.sel===-2?'Overzicht':S.type==='inbreuk'?(S.sub==='doc'?'Boorddocumenten/ID/RB':'Fotodossier'):pname(S.sel)} (${S.sel<0||S.sel>=100?bucket(S.sel).length:S.type==='inbreuk'?(S.sub==='doc'?S.partijen[0].photos.length:S.partijen[0].veh.length):S.partijen[S.sel].photos.length+S.partijen[S.sel].veh.length})</button>
    ${(S.sel<0||S.sel>=100)&&bucket(S.sel).length?`<button class="danger" data-ovdel>Laatste foto wissen</button>`:''}
